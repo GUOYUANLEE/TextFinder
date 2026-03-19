@@ -1,0 +1,70 @@
+<Window x:Class="TextFinder.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="TextFinder - 全文本搜索工具" Height="700" Width="1000"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 搜索路径选择 -->
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="PathTextBox" Grid.Column="0" Padding="5" FontSize="14" 
+                     VerticalContentAlignment="Center"/>
+            <Button Grid.Column="1" Content="浏览..." Width="80" Margin="5,0,0,0" 
+                    Click="BrowseFolder_Click"/>
+            <Button Grid.Column="2" Content="选择文件" Width="80" Margin="5,0,0,0" 
+                    Click="SelectFiles_Click"/>
+        </Grid>
+
+        <!-- 搜索框 -->
+        <Grid Grid.Row="1" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="SearchTextBox" Grid.Column="0" Padding="5" FontSize="14"
+                     VerticalContentAlignment="Center"
+                     KeyDown="SearchTextBox_KeyDown"/>
+            <Button Grid.Column="1" Content="搜索" Width="80" Margin="5,0,0,0" 
+                    Click="Search_Click"/>
+            <Button Grid.Column="2" Content="停止" Width="60" Margin="5,0,0,0" 
+                    Click="Stop_Click"/>
+        </Grid>
+
+        <!-- 结果列表 -->
+        <ListView x:Name="ResultsListView" Grid.Row="2" 
+                  MouseDoubleClick="ResultsListView_MouseDoubleClick">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="文件" Width="400" DisplayMemberBinding="{Binding FileName}"/>
+                    <GridViewColumn Header="路径" Width="350" DisplayMemberBinding="{Binding FilePath}"/>
+                    <GridViewColumn Header="匹配内容" Width="200" DisplayMemberBinding="{Binding Preview}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <!-- 状态栏 -->
+        <Grid Grid.Row="3" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="StatusText" Grid.Column="0" VerticalAlignment="Center"/>
+            <TextBlock x:Name="IndexStatusText" Grid.Column="1" VerticalAlignment="Center" Margin="0,0,20,0"/>
+            <Button x:Name="BuildIndexBtn" Grid.Column="2" Content="重建索引" 
+                    Padding="15,5" Click="BuildIndex_Click"/>
+        </Grid>
+    </Grid>
+</Window>
