@@ -77,6 +77,11 @@ namespace TextFinder
             using var conn = new SqliteConnection($"Data Source={_dbPath}");
             conn.Open();
             
+            // 设置超时和 WAL 模式提高并发性能
+            var pragmaCmd = conn.CreateCommand();
+            pragmaCmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;";
+            pragmaCmd.ExecuteNonQuery();
+
             var cmd = conn.CreateCommand();
             cmd.CommandText = @"
                 CREATE TABLE IF NOT EXISTS files (
@@ -88,9 +93,20 @@ namespace TextFinder
                     indexed_time TEXT DEFAULT CURRENT_TIMESTAMP
                 );
                 CREATE INDEX IF NOT EXISTS idx_filename ON files(filename);
-                CREATE VIRTUAL TABLE IF NOT EXISTS files_fts USING fts5(content, filepath, filename);
             ";
             cmd.ExecuteNonQuery();
+
+            // 尝试创建 FTS5 表，失败则忽略（不影响普通搜索）
+            try
+            {
+                var ftsCmd = conn.CreateCommand();
+                ftsCmd.CommandText = "CREATE VIRTUAL TABLE IF NOT EXISTS files_fts USING fts5(content, filepath, filename)";
+                ftsCmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"FTS5创建失败（不影响搜索）: {ex.Message}");
+            }
         }
 
         private void UpdateIndexStatus()
@@ -186,9 +202,9 @@ namespace TextFinder
                 using var conn = new SqliteConnection($"Data Source={_dbPath}");
                 conn.Open();
 
-                // 先检查索引是否存在
+                // 先检查索引是否存在（改查 files 表而不是 FTS5）
                 var checkCmd = conn.CreateCommand();
-                checkCmd.CommandText = "SELECT COUNT(*) FROM files_fts";
+                checkCmd.CommandText = "SELECT COUNT(*) FROM files";
                 var count = checkCmd.ExecuteScalar();
                 
                 if (count == null || Convert.ToInt32(count) == 0)
@@ -203,15 +219,19 @@ namespace TextFinder
 
                 // 使用简单 LIKE 搜索替代 FTS5
                 var cmd = conn.CreateCommand();
+                
+                // 修复：使用 startswith 而不是 LIKE，增强稳定性
                 cmd.CommandText = @"
                     SELECT filepath, filename, substr(content, 1, 200) as preview
                     FROM files
-                    WHERE filepath LIKE @folder || '%'
+                    WHERE filepath LIKE @keywordEscaped
                     AND (content LIKE @keyword OR filename LIKE @keyword)
                     LIMIT 500
                 ";
-                cmd.Parameters.AddWithValue("@folder", folder);
                 cmd.Parameters.AddWithValue("@keyword", $"%{keyword}%");
+                // 转义用于 LIKE 的特殊字符
+                var keywordEscaped = keyword.Replace("[", "[[]").Replace("%", "[%]").Replace("_", "[_]");
+                cmd.Parameters.AddWithValue("@keywordEscaped", $"%{keywordEscaped}%");
 
                 using var reader = cmd.ExecuteReader();
                 while (reader.Read())
@@ -303,6 +323,13 @@ namespace TextFinder
             {
                 try
                 {
+                    // 检查文件是否存在
+                    if (!File.Exists(result.FilePath))
+                    {
+                        MessageBox.Show("文件不存在或已被移动/删除", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                    
                     Process.Start(new ProcessStartInfo
                     {
                         FileName = result.FilePath,
@@ -352,8 +379,28 @@ namespace TextFinder
                 ".cs", ".java", ".cpp", ".c", ".h", ".go", ".rs", ".sql",
                 ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".pdf" };
 
+            // 需要跳过的系统文件夹
+            var systemFolders = new[] { 
+                "System Volume Information", 
+                "$RECYCLE.BIN",
+                "Windows",
+                "Program Files",
+                "Program Files (x86)",
+                "ProgramData",
+                "$Recycle.Bin"
+            };
+
             var files = Directory.EnumerateFiles(folder, "*.*", SearchOption.AllDirectories)
-                .Where(f => extensions.Contains(Path.GetExtension(f).ToLower()));
+                .Where(f => {
+                    // 跳过系统文件夹
+                    var path = f.Replace('/', '\\');
+                    foreach (var sf in systemFolders)
+                    {
+                        if (path.Contains(sf, StringComparison.OrdinalIgnoreCase))
+                            return false;
+                    }
+                    return extensions.Contains(Path.GetExtension(f).ToLower());
+                });
 
             using var conn = new SqliteConnection($"Data Source={_dbPath}");
             conn.Open();

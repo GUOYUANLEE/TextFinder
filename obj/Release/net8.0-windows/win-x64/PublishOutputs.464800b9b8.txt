@@ -1,0 +1,8 @@
+/Users/guoyuan/.openclaw/workspace/TextFinder/publish/TextFinder.pdb
+/Users/guoyuan/.openclaw/workspace/TextFinder/publish/D3DCompiler_47_cor3.dll
+/Users/guoyuan/.openclaw/workspace/TextFinder/publish/PenImc_cor3.dll
+/Users/guoyuan/.openclaw/workspace/TextFinder/publish/PresentationNative_cor3.dll
+/Users/guoyuan/.openclaw/workspace/TextFinder/publish/vcruntime140_cor3.dll
+/Users/guoyuan/.openclaw/workspace/TextFinder/publish/wpfgfx_cor3.dll
+/Users/guoyuan/.openclaw/workspace/TextFinder/publish/e_sqlite3.dll
+/Users/guoyuan/.openclaw/workspace/TextFinder/publish/TextFinder.exe
